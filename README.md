@@ -5,10 +5,23 @@ Qualisys Track Manager (QTM), developed for the bullwhip target-striking paradig
 described in Krotov et al. (2022, *Royal Society Open Science*) and the
 in-preparation multi-manuscript series on human motor control of a bullwhip.
 
+The inspiration developed after half of my M.S. was manually fixing marker labels, 
+which jumped between the markers as subjects were trying to hit a target with a whip.
+
+Empirical logic developed through sweat, tears, and mixed-language cursing while
+identifying markers in 45 40s-long (667 Hz) recordings in each of 17 subjects. 
+Specific constant values are of little interest for potential re-use, but I hope 
+the logic of two main workhorse scripts would save someone's time, like it once saved mine:
+1. Verifying inter-marker distances (to detect potential issues) before exporting a mocap
+   file for postprocessing.
+2. Using a greedy-like approach to automatically add marker labels to a trajectory,
+   under physical constraints and 
+
 **Environment:** QTM 2023.3 build 12577, 32-bit Python 3.10.  
 Third-party packages (numpy, scipy, pandas) were installed from pre-built
 wheels from https://www.lfd.uci.edu/~gohlke/pythonlibs/ because the
-32-bit interpreter cannot compile them natively.
+32-bit interpreter supplied with 2023.3 (and up to 2024.1) versions of QTM
+could not compile them natively.
 
 ---
 
@@ -49,8 +62,8 @@ helpers/
 
 ### Distance verification — `VerifyDist` (Ctrl+Shift+D)
 
-**Purpose:** scan the entire recording for biomechanically implausible
-inter-marker distances, flag suspect frames, and open a timestamped
+**Purpose:** scan the entire recording for physically and/or biomechanically implausible
+inter-marker distances, flag suspect frames, unify them into ranges, and open a timestamped
 plain-text report.
 
 **Algorithm:**
@@ -63,12 +76,15 @@ plain-text report.
    - Non-adjacent overrides (`DIST_MAX_NONADJACENT`) for specific pairs
      (e.g., Target-3 ↔ Target-1).
    - User-edited values from `THRESHOLD_FILE_PATH` (overwrites defaults if
-     the marker list matches).
+     the marker list matches). Slight changes may be introduced for different
+     subjects / different sessions based on manual inspection of the data.
 
 2. For every marker pair (*m1*, *m2*) with a positive threshold:
    - Compute the Euclidean distance time-series $d(t) = \|p_{m1}(t) - p_{m2}(t)\|$.
    - Report: min, median(5th–95th-percentile IQR), max, and N valid frames.
    - Flag all frames where $d(t)$ exceeds the threshold.
+    This prevented the swap of any markers of the thong, most crucially,
+    but also of some body markers.
 
 3. Two additional geometry checks are run unconditionally:
 
@@ -78,18 +94,19 @@ plain-text report.
    of (HDR − HDL) and (HD0 − w10):
    $$r = \frac{|\mathbf{n} \cdot (\mathbf{A} - \mathbf{C})|}{|\mathbf{n}|},
    \quad \mathbf{n} = (\text{HDR}-\text{HDL}) \times (\text{w10}-\text{HD0})$$
-   Frames where $r > 55$ mm are flagged.
+   Frames where $r > 55$ mm are flagged. This prevented the swap of either of
+   those markers with the hand or the whip thong markers.
 
    **Head L/R swap.** W_HeadL should always have a larger *x*-coordinate
    (rightward in the lab frame) than the midpoint of W_HeadTop and W_HeadFront,
    and W_HeadR the smaller. Any frame violating this is flagged.
 
-4. **Relational checks.** Directional inequalities of the form *d(m1,m2) > d(m3,m4)*
+5. **Relational checks.** Directional inequalities of the form *d(m1,m2) > d(m3,m4)*
    are evaluated frame-by-frame. The default relations are:
-   - `w10–HDL > w10–HDR` (whip handle pivot geometry)
-   - `W_RElbowOut–W_RHandOut > W_RElbowOut–W_RWristOut` (wrist proximal to hand)
+   - `w10–HDL > w10–HDR` (the two handle markers must not swap)
+   - `W_RElbowOut–W_RHandOut > W_RElbowOut–W_RWristOut` (hand_out and wrist_out markers must not swap)
 
-5. All flagged frames are collated into a final review table showing
+6. All flagged frames are collated into a final review table showing
    consecutive ranges and the involved markers.
 
 **Threshold file format** (`THRESHOLD_FILE_PATH`, plain text):
@@ -191,7 +208,7 @@ The trajectory is assigned to the marker with the highest score.
 - The 32-bit Python 3.10 bundled with QTM 2023.3 cannot natively compile
   C-extension packages. Wheels from https://www.lfd.uci.edu/~gohlke/pythonlibs/
   were used for numpy, scipy, and pandas.
-- Some QTM API methods documented in the SDK are not yet implemented in
+- Some QTM API methods documented in the recent SDK are not yet implemented in
   this build (e.g., `timeline.set_measured_range`). Several workarounds
   were required; see inline comments.
 - `qtm.data.series._3d.get_samples` returns a list of dicts (or `None`
@@ -204,9 +221,9 @@ The trajectory is assigned to the marker with the highest score.
 
 If you use these scripts, please cite the associated manuscript:
 
-> Krotov A, Russo M, Nah M, Edraki M, Lokesh R, Hogan N, Sternad D.
-> *How humans control a bullwhip: compact representation, anticipatory
-> commitment, and practice effects.* (in preparation)
+> 
+> *Hitting a target with a whip: Cognitive, athletic, and task-centered
+determinants.* (in preparation)
 
 and the earlier dataset paper:
 

@@ -230,4 +230,4 @@ and the earlier dataset paper:
 > Krotov A, Russo M, Nah M, Hogan N, Sternad D (2022).
 > Motor control beyond reach — how humans hit a target with a whip.
 > *Royal Society Open Science*, 9, 220525.
-> https://doi.org/10.1098/rsos.220525
+> https://doi.org/10.1098/RSOS.220581
